@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Koreksi Lembar Jawaban</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f7f6f2;--card:#fff;--tx:#1d1d1b;--mut:#6b6a63;--ac:#0f6e56;--bd:#ddd9cd;--ok:#1a7f4b;--bad:#c0392b;--wa:#b9770e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b19;--card:#262624;--tx:#eceae2;--mut:#a09e94;--ac:#3cc29a;--bd:#3a3a36;--ok:#4cc38a;--bad:#ef6b5b;--wa:#e0a040}}
+:root[data-theme="dark"]{--bg:#1b1b19;--card:#262624;--tx:#eceae2;--mut:#a09e94;--ac:#3cc29a;--bd:#3a3a36;--ok:#4cc38a;--bad:#ef6b5b;--wa:#e0a040}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 8px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit;letter-spacing:1px}
+button,.btn{display:inline-block;background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;text-align:center}
+.btn.sec,button.sec{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>input{flex:1;min-width:120px}
+canvas{width:100%;display:block;border-radius:8px;touch-action:none;background:#000}
+.hint{font-size:13px;color:var(--mut);margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}
+.cell{border:1px solid var(--bd);border-radius:8px;padding:6px 2px;text-align:center;font-size:14px;cursor:pointer;background:var(--bg);color:var(--tx);font-weight:500}
+.cell.ok{border-color:var(--ok);color:var(--ok)}.cell.no{border-color:var(--bad);color:var(--bad)}.cell.ga{border-color:var(--wa);color:var(--wa)}
+.score{font-size:34px;font-weight:700;color:var(--ac)}
+.stat{color:var(--mut);font-size:14px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left;white-space:nowrap}
+.hide{display:none}
+input[type=range]{width:100%}
+</style></head><body><main>
+<h1>Koreksi Lembar Jawaban</h1>
+<p class="sub">MTs Al-Anwar · 40 soal pilihan A–D · tanda silang (x)</p>
+
+<div class="card">
+<h2>1. Kunci jawaban</h2>
+<input type="text" id="key" placeholder="Contoh: ABCDABCD... (urut nomor 1, 2, 3, ...)" autocapitalize="characters" autocomplete="off">
+<div class="hint" id="keyinfo"></div>
+</div>
+
+<div class="card">
+<h2>2. Foto lembar jawab</h2>
+<label class="btn" for="file">📷 Ambil foto / pilih gambar</label>
+<input type="file" id="file" accept="image/*" capture="environment" class="hide">
+<div class="hint">Foto tegak lurus dari atas, cahaya merata, seluruh kotak jawaban soal 1–40 terlihat.</div>
+<div id="step2" class="hide">
+<canvas id="cv"></canvas>
+<div class="hint">Geser 4 titik hijau ke sudut luar kotak jawaban: kiri-atas kotak nomor 1, kanan-atas kotak nomor 31, kanan-bawah kotak D nomor 40, kiri-bawah kotak nomor 10.</div>
+<button id="go">Koreksi sekarang</button>
+</div>
+</div>
+
+<div id="step3" class="card hide">
+<h2>3. Hasil</h2>
+<canvas id="res"></canvas>
+<div class="hint">Kotak menandai jawaban terdeteksi. Hijau = benar, merah = salah, oranye = ganda.</div>
+<div class="row" style="margin:6px 0"><div class="score" id="nilai">-</div><div class="stat" id="stat"></div></div>
+<div class="hint">Ketuk nomor untuk mengoreksi manual (kosong → A → B → C → D).</div>
+<div class="grid" id="grid"></div>
+<label class="hint">Ambang tanda (kecil = lebih peka): <b id="thv">0.10</b></label>
+<input type="range" id="th" min="0.04" max="0.3" step="0.01" value="0.10">
+<div class="row" style="margin-top:10px">
+<input type="text" id="nama" placeholder="Nama siswa" style="letter-spacing:0"><input type="text" id="nisn" placeholder="NISN" inputmode="numeric" style="letter-spacing:0">
+<button id="save">Simpan siswa</button>
+</div>
+</div>
+
+<div id="step4" class="card hide">
+<h2>Rekap siswa (<span id="cnt">0</span>)</h2>
+<div class="tw"><table id="tb"></table></div>
+<div class="row" style="margin-top:10px"><button id="copy" class="sec">Salin untuk Excel</button><button id="clr" class="sec">Hapus semua</button></div>
+<textarea id="ta" class="hide" style="position:fixed;opacity:0;left:-999px"></textarea>
+<div class="hint" id="cmsg"></div>
+</div>
+</main>
+<script>
+const $=s=>document.querySelector(s),W=1600,H=460,NQ=40;
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+// posisi huruf A-D (pecahan lebar blok) dan batas tiap blok (pecahan lebar total)
+const BX=[[0,.217],[.237,.474],[.493,.728],[.747,1]];
+const CX=[[.345,.558,.74,.915],[.30,.488,.677,.891],[.289,.509,.695,.883],[.273,.475,.677,.879]];
+let src=null,pts=[],drag=-1,ans=[],G=null,SC=[],saved=store.get('saved',[]);
+const LET=['','A','B','C','D'];
+const keyArr=()=>($('#key').value.toUpperCase().match(/[ABCD]/g)||[]).slice(0,NQ);
+$('#key').value=store.get('key','');
+function keyUpd(){const k=keyArr();store.set('key',$('#key').value);$('#keyinfo').textContent=k.length?k.length+' kunci terbaca'+(k.length<NQ?' (kurang dari 40, hanya nomor 1–'+k.length+' dinilai)':''):'Belum ada kunci. Huruf selain A–D diabaikan.';if(ans.length)render()}
+$('#key').oninput=keyUpd;keyUpd();
+
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(1,1800/Math.max(im.width,im.height));src=document.createElement('canvas');src.width=Math.round(im.width*s);src.height=Math.round(im.height*s);src.getContext('2d').drawImage(im,0,0,src.width,src.height);URL.revokeObjectURL(im.src);const pf=store.get('pf',[[.06,.55],[.94,.55],[.94,.9],[.06,.9]]);pts=pf.map(p=>({x:p[0]*src.width,y:p[1]*src.height}));$('#step2').classList.remove('hide');$('#step3').classList.add('hide');draw()};im.src=URL.createObjectURL(f);e.target.value=''};
+
+function draw(){const cv=$('#cv'),c=cv.getContext('2d');cv.width=src.width;cv.height=src.height;c.drawImage(src,0,0);const r=cv.width/45;c.lineWidth=r/4;c.strokeStyle='#2ee59d';c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.stroke();pts.forEach(p=>{c.beginPath();c.arc(p.x,p.y,r,0,7);c.fillStyle='rgba(46,229,157,.5)';c.fill();c.stroke()})}
+function pos(e){const cv=$('#cv'),b=cv.getBoundingClientRect();return{x:(e.clientX-b.left)*cv.width/b.width,y:(e.clientY-b.top)*cv.height/b.height}}
+$('#cv').onpointerdown=e=>{const q=pos(e);let m=0,d=1e18;pts.forEach((p,i)=>{const k=(p.x-q.x)**2+(p.y-q.y)**2;if(k<d){d=k;m=i}});drag=m;e.target.setPointerCapture(e.pointerId);pts[m]=q;draw()};
+$('#cv').onpointermove=e=>{if(drag<0)return;pts[drag]=pos(e);draw()};
+$('#cv').onpointerup=()=>{if(drag>=0)store.set('pf',pts.map(p=>[p.x/src.width,p.y/src.height]));drag=-1};
+
+function gauss(A,b){const n=8;for(let i=0;i<n;i++){let m=i;for(let r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[m][i]))m=r;[A[i],A[m]]=[A[m],A[i]];[b[i],b[m]]=[b[m],b[i]];for(let r=i+1;r<n;r++){const f=A[r][i]/A[i][i];for(let c=i;c<n;c++)A[r][c]-=f*A[i][c];b[r]-=f*b[i]}}const x=[];for(let i=n-1;i>=0;i--){let s=b[i];for(let c=i+1;c<n;c++)s-=A[i][c]*x[c];x[i]=s/A[i][i]}return x}
+function warp(){const s=[[0,0],[W,0],[W,H],[0,H]],A=[],b=[];for(let i=0;i<4;i++){const[u,v]=s[i],{x,y}=pts[i];A.push([u,v,1,0,0,0,-u*x,-v*x]);b.push(x);A.push([0,0,0,u,v,1,-u*y,-v*y]);b.push(y)}
+const h=gauss(A,b),sw=src.width,sh=src.height,d=src.getContext('2d').getImageData(0,0,sw,sh).data,g=new Uint8Array(W*H);
+for(let v=0;v<H;v++)for(let u=0;u<W;u++){const z=h[6]*u+h[7]*v+1;let x=Math.round((h[0]*u+h[1]*v+h[2])/z),y=Math.round((h[3]*u+h[4]*v+h[5])/z);x=Math.max(0,Math.min(sw-1,x));y=Math.max(0,Math.min(sh-1,y));const i=(y*sw+x)*4;g[v*W+u]=.299*d[i]+.587*d[i+1]+.114*d[i+2]}return g}
+function binar(g){const I=new Float64Array((W+1)*(H+1));for(let y=0;y<H;y++){let r=0;for(let x=0;x<W;x++){r+=g[y*W+x];I[(y+1)*(W+1)+x+1]=I[y*(W+1)+x+1]+r}}
+const o=new Uint8Array(W*H),k=20;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const x0=Math.max(0,x-k),x1=Math.min(W,x+k+1),y0=Math.max(0,y-k),y1=Math.min(H,y+k+1);const s=I[y1*(W+1)+x1]-I[y0*(W+1)+x1]-I[y1*(W+1)+x0]+I[y0*(W+1)+x0];const m=s/((x1-x0)*(y1-y0));o[y*W+x]=g[y*W+x]<m-35?1:0}return o}
+const med=a=>{const s=[...a].sort((x,y)=>x-y);return s[s.length>>1]};
+function measure(){const D=binar(G.g);SC=[];G.rects=[];for(let q=0;q<NQ;q++){const bl=Math.floor(q/10),r=q%10,row=[],rr=[];for(let k=0;k<4;k++){const cx=(BX[bl][0]+(BX[bl][1]-BX[bl][0])*CX[bl][k])*W,cy=(r+.5)*H/10;const x0=Math.round(cx-24),x1=Math.round(cx+24),y0=Math.round(cy-15),y1=Math.round(cy+15);let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)n+=D[y*W+x];row.push(n/((x1-x0)*(y1-y0)));rr.push([x0,y0,x1-x0,y1-y0])}SC.push(row);G.rects.push(rr)}
+G.base=[0,1,2,3].map(k=>med(SC.map(r=>r[k])))}
+function decide(){const T=+$('#th').value;ans=SC.map(row=>{const s=row.map((v,k)=>v-G.base[k]),o=[0,1,2,3].sort((a,b)=>s[b]-s[a]);if(s[o[0]]<T)return'';if(s[o[1]]>T&&s[o[1]]>.7*s[o[0]])return'*';return LET[o[0]+1]})}
+$('#go').onclick=()=>{G={g:warp()};measure();decide();$('#step3').classList.remove('hide');render();$('#step3').scrollIntoView({behavior:'smooth'})};
+$('#th').oninput=()=>{$('#thv').textContent((+$('#th').value).toFixed(2));if(G){decide();render()}};
+
+function render(){const k=keyArr(),rc=$('#res'),c=rc.getContext('2d');rc.width=W;rc.height=H;const id=c.createImageData(W,H);for(let i=0;i<W*H;i++){id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=G.g[i];id.data[i*4+3]=255}c.putImageData(id,0,0);c.lineWidth=4;
+let ben=0,kos=0,gr='';$('#grid').innerHTML='';
+for(let q=0;q<NQ;q++){const a=ans[q],has=q<k.length,ok=has&&a===k[q];if(has){if(ok)ben++;if(a==='')kos++}
+const cls=a===''?'':a==='*'?'ga':!has?'':ok?'ok':'no';
+if(a&&a!=='*'){c.strokeStyle=!has?'#3b82f6':ok?'#16a34a':'#dc2626';c.strokeRect(...G.rects[q][LET.indexOf(a)-1])}
+if(a==='*'){c.strokeStyle='#f59e0b';G.rects[q].forEach(r=>c.strokeRect(...r))}
+const d=document.createElement('div');d.className='cell '+cls;d.textContent=(q+1)+': '+(a===''?'–':a==='*'?'ganda':a);d.onclick=()=>{ans[q]=a==='*'?'':LET[(LET.indexOf(a)+1)%5];render()};$('#grid').appendChild(d)}
+const n=k.length;G.res={ben,kos,n};$('#nilai').textContent=n?(ben/n*100).toFixed(1).replace(/\.0$/,''):'-';
+$('#stat').textContent=n?`Benar ${ben} · Salah ${n-ben-kos} · Kosong ${kos} (dari ${n} soal)`:'Isi kunci jawaban untuk menghitung nilai.'}
+
+function renderSaved(){$('#step4').classList.toggle('hide',!saved.length);$('#cnt').textContent=saved.length;$('#tb').innerHTML='<tr><th>No</th><th>Nama</th><th>NISN</th><th>Benar</th><th>Nilai</th></tr>'+saved.map((s,i)=>`<tr><td>${i+1}</td><td></td><td></td><td>${s.ben}/${s.n}</td><td>${s.nilai}</td></tr>`).join('');[...$('#tb').rows].slice(1).forEach((r,i)=>{r.cells[1].textContent=saved[i].nama;r.cells[2].textContent=saved[i].nisn})}
+$('#save').onclick=()=>{if(!G)return;const{ben,kos,n}=G.res;saved.push({nama:$('#nama').value.trim(),nisn:$('#nisn').value.trim(),ben,kos,n,nilai:n?+(ben/n*100).toFixed(1):0,jaw:ans.map(a=>a===''?'-':a==='*'?'?':a).join('')});store.set('saved',saved);$('#nama').value=$('#nisn').value='';renderSaved();$('#step4').scrollIntoView({behavior:'smooth'})};
+$('#clr').onclick=()=>{if(confirm('Hapus semua rekap?')){saved=[];store.set('saved',saved);renderSaved()}};
+$('#copy').onclick=()=>{const t='No\tNama\tNISN\tBenar\tSalah\tKosong\tNilai\tJawaban\n'+saved.map((s,i)=>[i+1,s.nama,"'"+s.nisn,s.ben,s.n-s.ben-s.kos,s.kos,s.nilai,s.jaw].join('\t')).join('\n');const ta=$('#ta');ta.value=t;ta.classList.remove('hide');ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.classList.add('hide');$('#cmsg').textContent=ok?'Tersalin. Tempel di Excel/Google Sheets.':'Gagal menyalin otomatis.'};
+renderSaved();
+</script></body></html>
